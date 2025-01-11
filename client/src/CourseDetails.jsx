@@ -39,6 +39,28 @@ const CourseDetails = () => {
         return text;
     };
     const handleTakeQuiz = () => {
+        const markAsComplete = async () => {
+            try {
+            const token = localStorage.getItem('token');
+                const response = await fetch(`/api/Courses/complete/${id}`, {
+                    method: "PUT",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to mark as complete.");
+                }
+
+                setLoading(false);
+            } catch (err) {
+                setError(err.message);
+                setLoading(false);
+            }
+        };
+        markAsComplete();
         navigate(`/quiz/${id}`);
     };
 

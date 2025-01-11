@@ -1,15 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using data;
-using server.Models;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
+using server.Models;
 using System.Text;
 using System.Linq;
 using System;
+using data;
 
 
 [Route("api/[controller]")]
@@ -48,14 +47,14 @@ public class CoursesController : ControllerBase
         var bearerToken = token.StartsWith("Bearer ") ? token.Substring(7) : token;
 
 
-            var userName = User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-        if (string.IsNullOrEmpty(userName))
+        var userEmail = User.Claims.FirstOrDefault(c => c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+        if (string.IsNullOrEmpty(userEmail))
         {
             return Unauthorized("User is not authenticated.");
         }
 
         var userCourses = await _context.Courses
-            .Where(c => c.Instructor == userName)
+            .Where(c => c.Instructor == userEmail)
             .ToListAsync();
 
         return Ok(userCourses);
@@ -85,39 +84,34 @@ public class CoursesController : ControllerBase
         return CreatedAtAction(nameof(GetCourse), new { id = course.Id }, course);
     }
 
+
     [HttpPost("{courseId}/enroll")]
     public async Task<IActionResult> Enroll(int courseId)
     {
-        var userId = User.Claims.FirstOrDefault(c => c.Type == "jti")?.Value;
-        Console.WriteLine($"userId: {userId}");
+        var username = User.FindFirstValue(ClaimTypes.NameIdentifier); // This gets "mohammed"
 
-
-        if (userId == null)
+        // Look up the user by username instead of Id
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == username);
+        if (user == null)
         {
-            return Unauthorized();
+            return NotFound(new { Message = "User not found" });
         }
 
+        // Use the actual Identity user Id for the enrollment
+        var userId = user.Id;  // This will be the GUID that Identity expects
 
-        // Validate the course exists
-        var course = await _context.Courses.FindAsync(courseId);
-        if (course == null)
-        {
-            return NotFound(new { Message = "Course not found" });
-        }
-
-        // Check if the user is already enrolled
-        bool isAlreadyEnrolled = await _context.Enrollments
+        // Check for existing enrollment using the correct Id
+        var existingEnrollment = await _context.Enrollments
             .AnyAsync(e => e.UserId == userId && e.CourseId == courseId);
-        if (isAlreadyEnrolled)
+        if (existingEnrollment)
         {
             return BadRequest(new { Message = "You are already enrolled in this course" });
         }
 
-        // Create new Enrollment
         var enrollment = new Enrollment
         {
-            UserId = userId,
-            CourseId = courseId
+            UserId = userId,  // Using the correct Identity user Id
+                   CourseId = courseId
         };
 
         _context.Enrollments.Add(enrollment);
@@ -127,7 +121,7 @@ public class CoursesController : ControllerBase
     }
 
 
-// PUT: api/Courses/5
+    // PUT: api/Courses/5
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateCourse(int id, Course course)
     {
@@ -177,4 +171,160 @@ public class CoursesController : ControllerBase
     {
         return _context.Courses.Any(e => e.Id == id);
     }
+
+    [HttpGet("enrolled")]
+    public async Task<ActionResult<IEnumerable<object>>> GetEnrolledCourses()
+    {
+        var username = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == username);
+
+        if (user == null)
+            return NotFound(new { Message = "User not found" });
+
+        var enrolledCourses = await _context.Enrollments
+            .Include(e => e.Course)
+            .Where(e => e.UserId == user.Id)
+            .Select(e => new
+                    {
+                    CourseId = e.CourseId,
+                    Course = e.Course,
+                    Status = e.Status,
+                    IsCompleted = e.IsCompleted,
+                    EnrollmentDate = e.EnrollmentDate,
+                    CompletionDate = e.CompletionDate
+                    })
+        .ToListAsync();
+
+        return Ok(enrolledCourses);
+    }
+
+    [HttpPut("complete/{courseId}")]
+    public async Task<IActionResult> CompleteCourse(int courseId)
+    {
+        var username = User.FindFirstValue(ClaimTypes.NameIdentifier); // This gets "mohammed"
+
+        // Look up the user by username instead of Id
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == username);
+
+        if (user == null)
+            return NotFound(new { Message = "User not found" });
+
+        var enrollment = await _context.Enrollments
+            .Include(e => e.Course)
+            .FirstOrDefaultAsync(e => e.UserId == user.Id && e.CourseId == courseId);
+
+        if (enrollment == null)
+            return NotFound(new { Message = "Enrollment not found" });
+
+        enrollment.Status = EnrollmentStatus.Completed;
+        enrollment.IsCompleted = true;
+        enrollment.CompletionDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return Ok(new { Message = "Course marked as completed" });
+    }
+
+    [HttpPost("submit-quiz/{courseId}")]
+    public async Task<IActionResult> SubmitQuiz(int courseId, [FromBody] string answer)
+    {
+        var username = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == username);
+
+        if (user == null)
+            return NotFound(new { Message = "User not found" });
+
+        var enrollment = await _context.Enrollments
+            .FirstOrDefaultAsync(e => e.UserId == user.Id && e.CourseId == courseId);
+
+        if (enrollment == null)
+            return NotFound(new { Message = "Enrollment not found" });
+
+        var submission = new QuizSubmission
+        {
+            EnrollmentId = enrollment.Id,
+                         StudentId = user.Id,
+                         Answer = answer
+        };
+
+        _context.QuizSubmissions.Add(submission);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { Message = "Quiz submitted successfully" });
+    }
+
+    [HttpPut("review-submission/{submissionId}")]
+    public async Task<IActionResult> ReviewSubmission(int submissionId, [FromBody] ReviewDto review)
+    {
+        var submission = await _context.QuizSubmissions
+            .Include(s => s.Enrollment)
+            .ThenInclude(e => e.Course)
+            .FirstOrDefaultAsync(s => s.Id == submissionId);
+
+        if (submission == null)
+            return NotFound();
+
+        // Verify the current user is the course instructor
+
+        submission.Status = review.Status;
+        submission.InstructorFeedback = review.Feedback;
+
+        if (review.Status == SubmissionStatus.Passed)
+        {
+            submission.Enrollment.IsCompleted = true;
+            submission.Enrollment.CompletionDate = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { Message = "Review submitted successfully" });
+    }
+    [HttpGet("submissions")]
+    public async Task<ActionResult<IEnumerable<QuizSubmissionDTO>>> GetInstructorSubmissions()
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var username = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == username);
+        var email = user.Email;
+
+        if (string.IsNullOrEmpty(instructorId))
+        {
+            return Unauthorized();
+        }
+
+        var submissions = await _context.QuizSubmissions
+            .Include(s => s.Student)
+            .Include(s => s.Enrollment)
+                .ThenInclude(e => e.Course)
+            .Where(s => s.Enrollment.Course.Instructor == email)
+            .Select(s => new QuizSubmissionDTO
+            {
+                Id = s.Id,
+                StudentName = s.Student.UserName,
+                CourseTitle = s.Enrollment.Course.Title,
+                Answer = s.Answer,
+                Status = s.Status,
+                SubmissionDate = s.SubmissionDate,
+                InstructorFeedback = s.InstructorFeedback
+            })
+            .OrderByDescending(s => s.SubmissionDate)
+                .ToListAsync();
+
+            return Ok(submissions);
+    }
+
+    public class ReviewDto
+    {
+        public SubmissionStatus Status { get; set; }
+        public string Feedback { get; set; }
+    }
+    public class QuizSubmissionDTO
+{
+    public int Id { get; set; }
+    public string StudentName { get; set; }
+    public string CourseTitle { get; set; }
+    public string Answer { get; set; }
+    public SubmissionStatus Status { get; set; }
+    public DateTime SubmissionDate { get; set; }
+    public string? InstructorFeedback { get; set; }
+}
+
 }

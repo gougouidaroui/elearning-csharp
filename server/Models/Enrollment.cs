@@ -4,14 +4,18 @@ using server.Models;
 public class Enrollment
 {
     public int Id { get; set; }
-
-    // Foreign keys
-    public string UserId { get; set; } // Reference to the user
-    public int CourseId { get; set; }  // Reference to the course
-
-    // Navigation properties
+    public string UserId { get; set; }
+    public int CourseId { get; set; }
+    public EnrollmentStatus Status { get; set; } = EnrollmentStatus.InProgress;
+    public bool IsCompleted { get; set; } = false;
+    public DateTime EnrollmentDate { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletionDate { get; set; }
     public IdentityUser User { get; set; }
     public Course Course { get; set; }
+}
 
-    public DateTime EnrollmentDate { get; set; } = DateTime.UtcNow;
+public enum EnrollmentStatus
+{
+    InProgress,
+    Completed
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using server.Models;
 using System.Text;
 using System.Linq;
 using System;
@@ -116,6 +117,7 @@ namespace server.Controllers
         {
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),  // Use the actual Id from Identity
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),  // Directly use user.Email here
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())

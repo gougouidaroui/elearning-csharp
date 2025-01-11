@@ -1,0 +1,11 @@
+button {
+    display: block;
+    margin: 2rem auto;
+    background: gray;
+    padding: 10px;
+    border-radius: 10px;
+
+}
+button:hover {
+    background: darkgray;
+}

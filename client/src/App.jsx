@@ -8,10 +8,11 @@ import Register from './Register';
 import useUserRoles from "./hooks/roles";
 import useAuth from './auth';
 import CourseManagement from './Course';
-import EnrolledCourses from './EnrolledCourses';
 import CourseDetails from './CourseDetails';
 import QuizSubmission from './QuizSubmission';
 import InstructorReview from './InstructorReview';
+import CertificatePage from './Certificate';
+import Admin from './Admin';
 
 function App() {
     const { isAuthenticated, loading } = useAuth();
@@ -49,9 +50,9 @@ function App() {
                         <Route path="/courses" element={<Courses />} />
                         {isAuthenticated ? (
                             <>
-                                <Route path="/enrolled" element={<EnrolledCourses />} />
                                 <Route path="/courses/:id" element={<CourseDetails />} />
                                 <Route path="/quiz/:id" element={<QuizSubmission />} />
+                                <Route path="/certificate/:id" element={<CertificatePage />} />
                             </>
                         ) : (
                                 <>
@@ -59,7 +60,7 @@ function App() {
                             )}
                         {isAuthenticated && isAdmin ? (
                             <>
-                                <Route path="/admin" element={<div>Admin Dashboard</div>} />
+                                <Route path="/admin" element={<Admin />} />
                                 <Route path="/admin/course" element={<CourseManagement />} />
                                 <Route path="/admin/review" element={<InstructorReview />} />
                             </>

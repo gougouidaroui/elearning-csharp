@@ -7,8 +7,10 @@ function Courses() {
   const navigate = useNavigate();
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isCompleted, setIsCompleted] = useState([]);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState("");
+
   const handleGoToCourse = (courseId) => {
     navigate(`/courses/${courseId}`);
   };
@@ -45,6 +47,7 @@ function Courses() {
 
       const data = await response.json();
       setEnrolledCourses(data.map(course => course.courseId)); // Store only the enrolled course IDs
+      setIsCompleted(data.filter(course => course.isCompleted === true).map(course => course.courseId))
     } catch (err) {
       console.error('Error fetching enrolled courses:', err);
     }
@@ -76,6 +79,10 @@ function Courses() {
       setMessage(`Error: ${err.message}`);
     }
   };
+  const handleGoToCertificate = (courseId) => {
+    navigate(`/certificate/${courseId}`);
+
+    }
 
   if (loading) {
     return <div>Loading courses...</div>;
@@ -95,11 +102,16 @@ function Courses() {
             <h3>{course.title}</h3>
             <p>{course.description}</p>
             <p><strong>Instructor:</strong> {course.instructor}</p>
-            {enrolledCourses.includes(course.id) ? (
+                        {isCompleted.includes(course.id) ? (
+                            <button onClick={() => handleGoToCertificate(course.id)}>Go to certificate</button>
+                        )
+                        : (
+            enrolledCourses.includes(course.id) ? (
             <button onClick={() => handleGoToCourse(course.id)}>Go to Course</button>
             ) : (
               <button onClick={() => handleEnroll(course.id)}>Enroll Now</button>
-            )}
+            )
+                    )}
           </div>
         ))}
       </div>

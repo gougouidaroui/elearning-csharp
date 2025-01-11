@@ -1,0 +1,107 @@
+
+/* Basic reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Background and container */
+.certificate-container {
+  background: linear-gradient(135deg, #e5e5e5, #f9f9f9);
+  width: 100%;
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  background-color: #fff;
+  position: relative;
+}
+
+/* Certificate header */
+.certificate-header h1 {
+  font-size: 36px;
+  color: #333;
+  margin-bottom: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Certificate body */
+.certificate-body {
+  margin-top: 30px;
+  font-size: 20px;
+  color: #333;
+}
+
+/* User name styling */
+.user-name {
+  font-size: 36px;
+  font-weight: bold;
+  color: #0056b3;
+  margin: 10px 0;
+  text-transform: capitalize;
+  letter-spacing: 2px;
+}
+
+/* Course name */
+.course-name {
+  font-size: 30px;
+  color: #444;
+  font-weight: 600;
+  margin: 15px 0;
+}
+
+/* Certificate text */
+.certificate-text {
+  font-size: 22px;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+/* Footer */
+.certificate-footer {
+  margin-top: 30px;
+  font-size: 18px;
+  color: #777;
+}
+
+/* Instructor */
+.certificate-footer p {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 5px 0;
+}
+
+/* Decorative line */
+.certificate-container:before {
+  content: '';
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background-color: #0056b3;
+}
+
+/* Signature line */
+.signature {
+  margin-top: 40px;
+  font-size: 20px;
+  color: #444;
+  font-style: italic;
+  text-align: left;
+  margin-left: 40px;
+}
+
+.signature:after {
+  content: '_________________';
+  display: block;
+  margin-top: 10px;
+  width: 150px;
+}
+

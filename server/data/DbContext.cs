@@ -10,6 +10,7 @@ namespace data
 
         public DbSet<Course> Courses { get; set; }
         public DbSet<Enrollment> Enrollments { get; set; }
+        public DbSet<QuizSubmission> QuizSubmissions { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
@@ -19,7 +20,7 @@ namespace data
 
             modelBuilder.Entity<Enrollment>()
                 .HasOne(e => e.User)
-                                .WithMany() // No navigation property in IdentityUser
+                .WithMany() // No navigation property in IdentityUser
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
